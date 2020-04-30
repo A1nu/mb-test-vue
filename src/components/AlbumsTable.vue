@@ -61,6 +61,7 @@
             },
             search: function () {
                 this.applySearch();
+                this.sortType = this.sortingTypes.BY_ALBUM_ID;
             }
         },
         filters: {
