@@ -1,0 +1,1 @@
+export const SortingTypes = Object.freeze({BY_ALBUM_ID: 0, BY_ALBUM_TITLE: 1, BY_PHOTO_TITLE: 2})
