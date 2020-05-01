@@ -1,43 +1,74 @@
 <template>
-    <div id="albums-table">
-        <table v-if="displayedPhotos.length > 0">
-            <thead>
-            <tr>
-                <th class="sortable" @click="sortType = sortingTypes.BY_ALBUM_ID" v-bind:class="{active: isSortTypeActive(sortingTypes.BY_ALBUM_ID)}">id</th>
-                <th class="sortable" @click="sortType = sortingTypes.BY_ALBUM_TITLE" v-bind:class="{active: isSortTypeActive(sortingTypes.BY_ALBUM_TITLE)}">album title</th>
-                <th class="sortable" @click="sortType = sortingTypes.BY_PHOTO_TITLE" v-bind:class="{active: isSortTypeActive(sortingTypes.BY_PHOTO_TITLE)}">photos title</th>
-                <th>photos thumbnail</th>
-            </tr>
-            </thead>
-            <tbody>
-                <tr v-for="photo in items" :key="photo.id">
-                    <td>{{photo.albumId}}</td>
-                    <td>{{ photo.albumId | albumTitle(albums) }}</td>
-                    <td>{{photo.title}}</td>
-                    <td><a :href="photo.url" target="_blank"><img :src="photo.thumbnailUrl"></a> </td>
-                </tr>
-            </tbody>
-        </table>
-        <div v-if="displayedPhotos.length === 0">there are no items matched to your search</div>
-    </div>
+  <div id="albums-table">
+    <table v-if="displayedPhotos.length > 0">
+      <thead>
+        <tr>
+          <th
+            class="sortable"
+            :class="{active: isSortTypeActive(sortingTypes.BY_ALBUM_ID)}"
+            @click="sortType = sortingTypes.BY_ALBUM_ID"
+          >
+            id
+          </th>
+          <th
+            class="sortable"
+            :class="{active: isSortTypeActive(sortingTypes.BY_ALBUM_TITLE)}"
+            @click="sortType = sortingTypes.BY_ALBUM_TITLE"
+          >
+            album title
+          </th>
+          <th
+            class="sortable"
+            :class="{active: isSortTypeActive(sortingTypes.BY_PHOTO_TITLE)}"
+            @click="sortType = sortingTypes.BY_PHOTO_TITLE"
+          >
+            photos title
+          </th>
+          <th>photos thumbnail</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr
+          v-for="photo in items"
+          :key="photo.id"
+        >
+          <td>{{ photo.albumId }}</td>
+          <td>{{ photo.albumId | albumTitle(albums) }}</td>
+          <td>{{ photo.title }}</td>
+          <td>
+            <a
+              :href="photo.url"
+              target="_blank"
+            ><img :src="photo.thumbnailUrl"></a>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
 </template>
 
 
 <script>
-    import {sortByTitle} from "../utils/sorting";
-    import {SearchTypes} from "../constants/SearchTypes";
-    import {SortingTypes} from "../constants/SortingTypes";
+    import { sortByTitle } from "../utils/sorting";
+    import { SortingTypes } from "../constants/SortingTypes";
+    import { getAlbum } from "../utils/DataGetters";
 
     export default {
-        name: "albums-table",
+        name: "AlbumsTable",
+        filters: {
+            albumTitle: function (id, albums) {
+                return getAlbum(id, albums).title
+            },
+        },
         props: {
-            albums: Array,
-            photos: Array,
-            height: Number,
-            search: {
-                searchString: String,
-                selectedSearch: SearchTypes
-            }
+            albums: {
+              type: Array,
+              default: () => []
+            },
+            photos: {
+              type: Array,
+              default: () => []
+            },
         },
         data() {
             return {
@@ -46,83 +77,49 @@
                 sortType: SortingTypes.BY_ALBUM_ID,
                 displayedPhotos: [],
                 sortingTypes: SortingTypes,
-                searchTypes: SearchTypes,
             }
         },
         watch: {
-            rowAmount: function () {
+            rowAmount() {
                 this.loadBatch();
             },
-            displayedPhotos: function () {
+            displayedPhotos() {
                 this.reloadPhotos();
             },
-            sortType: function () {
+            sortType() {
                 this.getSortedPhotos();
             },
-            search: function () {
-                this.applySearch();
-                this.sortType = this.sortingTypes.BY_ALBUM_ID;
+            photos() {
+                this.getSortedPhotos();
             }
         },
-        filters: {
-            albumTitle: function (id, albums) {
-                return albums.find(album => album.id === id).title
-            },
-        },
         mounted() {
-            this.applySearch();
             this.scroll();
         },
         methods: {
             reloadPhotos() {
                 this.items = this.displayedPhotos.slice(0, this.rowAmount);
             },
-            applySearch() {
-                if (this.search.searchString.length === 0) {
-                    this.displayedPhotos = this.photos.slice();
-                    return;
-                }
-                switch (this.search.selectedSearch) {
-                    case this.searchTypes.SEARCH_BY_ALBUM_TITLE:
-                        this.displayedPhotos =
-                            this.photos.slice()
-                                .filter(photo =>
-                                    this.getAlbum(photo.albumId).title.toLowerCase()
-                                    .includes(this.search.searchString.trim().toLowerCase()
-                                    ));
-                        break;
-                    case this.searchTypes.SEARCH_BY_PHOTO_TITLE:
-                        this.displayedPhotos =
-                            this.photos.slice()
-                                .filter(photo =>
-                                    photo.title.toLowerCase()
-                                        .includes(this.search.searchString.trim().toLowerCase()
-                                        ))
-                }
-            },
             getSortedPhotos() {
                 switch (this.sortType) {
                     case SortingTypes.BY_ALBUM_ID:
-                        this.displayedPhotos.sort((a, b) => a.albumId - b.albumId);
+                        this.displayedPhotos = this.photos.slice().sort((a, b) => a.albumId - b.albumId);
                         break;
                     case SortingTypes.BY_ALBUM_TITLE: {
-                        this.displayedPhotos.sort((a, b) =>
-                            sortByTitle(this.getAlbum(a.albumId), this.getAlbum(b.albumId))
+                        this.displayedPhotos = this.photos.slice().sort((a, b) =>
+                            sortByTitle(getAlbum(a.albumId, this.albums), getAlbum(b.albumId, this.albums))
                         )
                         break;
                     }
                     case SortingTypes.BY_PHOTO_TITLE:
-                        this.displayedPhotos.sort((a, b) => sortByTitle(a, b));
+                        this.displayedPhotos = this.photos.slice().sort((a, b) => sortByTitle(a, b));
                         break;
                 }
                 this.scrollToTop();
                 this.rowAmount = 25;
             },
-            getAlbum(albumId) {
-                return this.albums.find(album => album.id === albumId)
-            },
             loadBatch() {
-                this.items.push(this.photos[this.rowAmount])
+                this.items.push(this.displayedPhotos[this.rowAmount])
             },
             increaseRowAmount() {
                 this.rowAmount += 1;

@@ -1,1 +1,1 @@
-export const SearchTypes = Object.freeze({SEARCH_BY_PHOTO_TITLE: 0, SEARCH_BY_ALBUM_TITLE: 1})
+export const SearchTypes = Object.freeze({ SEARCH_BY_PHOTO_TITLE: 0, SEARCH_BY_ALBUM_TITLE: 1, SEARCH_BY_PHOTO_AND_ALBUM_TITLE: 2 });
