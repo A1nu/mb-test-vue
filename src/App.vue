@@ -25,12 +25,11 @@
         :value="searchTypes.SEARCH_BY_PHOTO_AND_ALBUM_TITLE"
       >&nbsp;Photos and Albums
     </div>
-    <div v-if="filteredPhotos.length === 0 && photos.length > 0">
-      there are no items matched to your search
-    </div>
     <albums-table
       :albums="albums"
-      :photos="filteredPhotos"
+      :photos="photos"
+      :search-string="searchString"
+      :selected-search="selectedSearch"
     />
     <div
       v-if="photos.length === 0"
@@ -77,7 +76,6 @@
 import AlbumsTable from "./components/AlbumsTable";
 import RestService from "./services/rest.service"
 import { SearchTypes } from "./constants/SearchTypes";
-import { getAlbum } from "./utils/DataGetters";
 
 const restService = new RestService();
 
@@ -93,18 +91,6 @@ export default {
       searchTypes: SearchTypes,
       searchString: '',
       selectedSearch: SearchTypes.SEARCH_BY_ALBUM_TITLE,
-      filteredPhotos: []
-    }
-  },
-  watch: {
-    photos: function () {
-      this.applySearch()
-    },
-    searchString: function () {
-      this.applySearch()
-    },
-    selectedSearch: function () {
-      this.applySearch()
     }
   },
   mounted() {
@@ -118,31 +104,6 @@ export default {
     })
   },
   methods: {
-    applySearch() {
-      if (this.searchString.length === 0) {
-        this.filteredPhotos = this.photos.slice();
-        return;
-      }
-      const searchString = this.searchString.trim().toLowerCase();
-      switch (this.selectedSearch) {
-        case this.searchTypes.SEARCH_BY_ALBUM_TITLE:
-          this.filteredPhotos =
-                  this.photos.slice()
-                          .filter(photo => getAlbum(photo.albumId, this.albums).title.toLowerCase().includes(searchString));
-          break;
-        case this.searchTypes.SEARCH_BY_PHOTO_TITLE:
-          this.filteredPhotos =
-                  this.photos.slice()
-                          .filter(photo => photo.title.toLowerCase().includes(searchString))
-              break;
-            case this.searchTypes.SEARCH_BY_PHOTO_AND_ALBUM_TITLE:
-              this.filteredPhotos =
-                      this.photos.slice()
-                              .filter(photo =>
-                                      getAlbum(photo.albumId, this.albums).title.toLowerCase().includes(searchString) ||
-                                      photo.title.toLowerCase().includes(searchString));
-      }
-    },
   }
 }
 </script>

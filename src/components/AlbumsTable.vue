@@ -1,5 +1,8 @@
 <template>
   <div id="albums-table">
+    <div v-if="displayedPhotos.length === 0 && photos.length > 0">
+      there are no items matched to your search
+    </div>
     <table v-if="displayedPhotos.length > 0">
       <thead>
         <tr>
@@ -49,102 +52,138 @@
 
 
 <script>
-    import { sortByTitle } from "../utils/sorting";
-    import { SortingTypes } from "../constants/SortingTypes";
-    import { getAlbum } from "../utils/DataGetters";
+  import { sortByTitle } from "../utils/sorting";
+  import { SortingTypes } from "../constants/SortingTypes";
+  import { getAlbum } from "../utils/DataGetters";
+  import { SearchTypes } from "../constants/SearchTypes";
 
-    export default {
-        name: "AlbumsTable",
-        filters: {
-            albumTitle: function (id, albums) {
-                return getAlbum(id, albums).title
-            },
-        },
-        props: {
-            albums: {
-              type: Array,
-              default: () => []
-            },
-            photos: {
-              type: Array,
-              default: () => []
-            },
-        },
-        data() {
-            return {
-                rowAmount: 25,
-                items: [],
-                sortType: SortingTypes.BY_ALBUM_ID,
-                displayedPhotos: [],
-                sortingTypes: SortingTypes,
-            }
-        },
-        watch: {
-            rowAmount() {
-                this.loadBatch();
-            },
-            displayedPhotos() {
-                this.reloadPhotos();
-            },
-            sortType() {
-                this.getSortedPhotos();
-            },
-            photos() {
-                this.getSortedPhotos();
-            }
-        },
-        mounted() {
-            this.scroll();
-        },
-        methods: {
-            reloadPhotos() {
-                this.items = this.displayedPhotos.slice(0, this.rowAmount);
-            },
-            getSortedPhotos() {
-                switch (this.sortType) {
-                    case SortingTypes.BY_ALBUM_ID:
-                        this.displayedPhotos = this.photos.slice().sort((a, b) => a.albumId - b.albumId);
-                        break;
-                    case SortingTypes.BY_ALBUM_TITLE: {
-                        this.displayedPhotos = this.photos.slice().sort((a, b) =>
-                            sortByTitle(getAlbum(a.albumId, this.albums), getAlbum(b.albumId, this.albums))
-                        )
-                        break;
-                    }
-                    case SortingTypes.BY_PHOTO_TITLE:
-                        this.displayedPhotos = this.photos.slice().sort((a, b) => sortByTitle(a, b));
-                        break;
-                }
-                this.scrollToTop();
-                this.rowAmount = 25;
-            },
-            loadBatch() {
-                this.items.push(this.displayedPhotos[this.rowAmount])
-            },
-            increaseRowAmount() {
-                this.rowAmount += 1;
-            },
-            isSortTypeActive(sortType) {
-                return this.sortType === sortType
-            },
-            scroll () {
-                window.onscroll = () => {
-                    let bottomOfWindow = Math.max(
-                        window.pageYOffset,
-                        document.documentElement.scrollTop,
-                        document.body.scrollTop
-                    ) + window.innerHeight === document.documentElement.offsetHeight
-
-                    if (bottomOfWindow) {
-                        this.increaseRowAmount();
-                    }
-                }
-            },
-            scrollToTop() {
-                window.scrollTo(0,0);
-            }
+  export default {
+    name: "AlbumsTable",
+    filters: {
+      albumTitle: function (id, albums) {
+          return getAlbum(id, albums).title
+      },
+    },
+    props: {
+      albums: {
+        type: Array,
+        default: () => []
+      },
+      photos: {
+        type: Array,
+        default: () => []
+      },
+      selectedSearch: SearchTypes,
+      searchString: {
+        type: String,
+        default: ''
+      }
+    },
+    data() {
+      return {
+        rowAmount: 25,
+        items: [],
+        sortType: SortingTypes.BY_ALBUM_ID,
+        displayedPhotos: [],
+        sortingTypes: SortingTypes,
+        searchTypes: SearchTypes,
+      }
+    },
+    watch: {
+      rowAmount() {
+        this.loadBatch();
+      },
+      displayedPhotos() {
+        this.reloadPhotos();
+      },
+      sortType() {
+        this.applySorting();
+      },
+      photos() {
+        this.applySearch();
+      },
+      searchString() {
+        this.applySearch();
+      },
+      selectedSearch() {
+        this.applySearch();
+      }
+    },
+    mounted() {
+      this.scroll();
+    },
+    methods: {
+      reloadPhotos() {
+        this.items = this.displayedPhotos.slice(0, this.rowAmount);
+      },
+      applySorting() {
+        this.getSortedPhotos(this.displayedPhotos)
+      },
+      applySearch() {
+        const collectionToFilter = this.photos.slice();
+        if (this.searchString.length === 0) {
+          this.getSortedPhotos(collectionToFilter);
+          return;
         }
+        const searchString = this.searchString.trim().toLowerCase();
+        switch (this.selectedSearch) {
+          case this.searchTypes.SEARCH_BY_ALBUM_TITLE:
+            this.getSortedPhotos(collectionToFilter.filter(photo => getAlbum(photo.albumId, this.albums).title.toLowerCase().includes(searchString)))
+            break;
+          case this.searchTypes.SEARCH_BY_PHOTO_TITLE:
+            this.getSortedPhotos(collectionToFilter.filter(photo => photo.title.toLowerCase().includes(searchString)))
+            break;
+          case this.searchTypes.SEARCH_BY_PHOTO_AND_ALBUM_TITLE:
+            this.getSortedPhotos(collectionToFilter.filter(photo =>
+                    getAlbum(photo.albumId, this.albums).title.toLowerCase().includes(searchString) ||
+                    photo.title.toLowerCase().includes(searchString)))
+        }
+      },
+      getSortedPhotos(collectionToSort) {
+        switch (this.sortType) {
+          case SortingTypes.BY_ALBUM_ID:
+            this.displayedPhotos = collectionToSort.sort((a, b) => a.albumId - b.albumId);
+            break;
+            case SortingTypes.BY_ALBUM_TITLE: {
+              this.displayedPhotos = collectionToSort.sort((a, b) =>
+                    sortByTitle(getAlbum(a.albumId, this.albums), getAlbum(b.albumId, this.albums))
+                )
+                break;
+            }
+            case SortingTypes.BY_PHOTO_TITLE:
+              this.displayedPhotos = collectionToSort.sort((a, b) => sortByTitle(a, b));
+              break;
+          }
+          this.scrollToTop();
+          this.rowAmount = 25;
+      },
+      loadBatch() {
+        this.items.push(this.displayedPhotos[this.rowAmount])
+      },
+      increaseRowAmount() {
+        this.rowAmount += 1;
+      },
+      isSortTypeActive(sortType) {
+        return this.sortType === sortType
+      },
+      scroll () {
+        window.onscroll = () => {
+          let bottomOfWindow = Math.max(
+              window.pageYOffset,
+              document.documentElement.scrollTop,
+              document.body.scrollTop
+            ) + window.innerHeight === document.documentElement.offsetHeight
+
+            if (bottomOfWindow) {
+                this.increaseRowAmount();
+            }
+          }
+      },
+      scrollToTop() {
+        window.scrollTo(0,0);
+      }
     }
+  }
 </script>
 
 <style scoped>
