@@ -1,9 +1,9 @@
 <template>
   <div id="albums-table">
-    <div v-if="displayedPhotos.length === 0 && photos.length > 0">
+    <div v-if="photoCollection.length === 0 && photos.length > 0">
       there are no items matched to your search
     </div>
-    <table v-if="displayedPhotos.length > 0">
+    <table v-if="photoCollection.length > 0">
       <thead>
         <tr>
           <th
@@ -32,7 +32,7 @@
       </thead>
       <tbody>
         <tr
-          v-for="photo in items"
+          v-for="photo in photosToDisplay"
           :key="photo.id"
         >
           <td>{{ photo.albumId }}</td>
@@ -82,9 +82,9 @@
     data() {
       return {
         rowAmount: 25,
-        items: [],
+        photosToDisplay: [],
         sortType: SortingTypes.BY_ALBUM_ID,
-        displayedPhotos: [],
+        photoCollection: [],
         sortingTypes: SortingTypes,
         searchTypes: SearchTypes,
       }
@@ -93,7 +93,7 @@
       rowAmount() {
         this.loadBatch();
       },
-      displayedPhotos() {
+      photoCollection() {
         this.reloadPhotos();
       },
       sortType() {
@@ -114,10 +114,10 @@
     },
     methods: {
       reloadPhotos() {
-        this.items = this.displayedPhotos.slice(0, this.rowAmount);
+        this.photosToDisplay = this.photoCollection.slice(0, this.rowAmount);
       },
       applySorting() {
-        this.getSortedPhotos(this.displayedPhotos)
+        this.getSortedPhotos(this.photoCollection)
       },
       applySearch() {
         const collectionToFilter = this.photos.slice();
@@ -142,23 +142,23 @@
       getSortedPhotos(collectionToSort) {
         switch (this.sortType) {
           case SortingTypes.BY_ALBUM_ID:
-            this.displayedPhotos = collectionToSort.sort((a, b) => a.albumId - b.albumId);
+            this.photoCollection = collectionToSort.sort((a, b) => a.albumId - b.albumId);
             break;
             case SortingTypes.BY_ALBUM_TITLE: {
-              this.displayedPhotos = collectionToSort.sort((a, b) =>
+              this.photoCollection = collectionToSort.sort((a, b) =>
                     sortByTitle(getAlbum(a.albumId, this.albums), getAlbum(b.albumId, this.albums))
                 )
                 break;
             }
             case SortingTypes.BY_PHOTO_TITLE:
-              this.displayedPhotos = collectionToSort.sort((a, b) => sortByTitle(a, b));
+              this.photoCollection = collectionToSort.sort((a, b) => sortByTitle(a, b));
               break;
           }
           this.scrollToTop();
           this.rowAmount = 25;
       },
       loadBatch() {
-        this.items.push(this.displayedPhotos[this.rowAmount])
+        this.photosToDisplay.push(this.photoCollection[this.rowAmount])
       },
       increaseRowAmount() {
         this.rowAmount += 1;
